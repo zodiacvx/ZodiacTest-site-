@@ -1,0 +1,79 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrollbars on the body */
+  height: 100vh; /* Ensure body takes up full viewport height */
+}
+
+#auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  height: 100vh;
+  justify-content: center;
+  background-color: #f0f0f0;
+}
+
+#auth-tabs {
+  margin-bottom: 20px;
+}
+
+#auth-tabs button {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background-color: #fff;
+}
+
+#auth-tabs button:hover {
+  background-color: #eee;
+}
+
+#register-form, #login-form {
+  display: none; /* Initially hide both forms */
+  flex-direction: column;
+  width: 300px;
+  gap: 10px;
+}
+
+#map-container {
+    width: 100%;
+    height: 100%;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+#search-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+#search-container input, #search-container button{
+  padding: 4px;
+}
+
+#add-tree-ui{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+#add-tree-ui > * {
+    margin-bottom: .2rem;
+}
+#tree-details, #zone-details {
+    display: flex;
+    flex-direction: column;
+}
+#tree-details > *, #zone-details > * {
+  margin-bottom: .2rem;
+}
