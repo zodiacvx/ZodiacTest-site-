@@ -1,197 +1,174 @@
-let map;
+let users = [];
+let currentUser = null;
+let map, tempMarker, tempPolygon;
 let addTreeMode = false;
 let addZoneMode = false;
-let tempMarker = null;
 let markers = [];
-let user = null;
 let zonePoints = [];
-let tempPolygon = null;
 
 function showRegister() {
-  document.getElementById('register-form').style.display = 'flex';
+  document.getElementById('register-form').style.display = 'block';
   document.getElementById('login-form').style.display = 'none';
 }
 
 function showLogin() {
+  document.getElementById('login-form').style.display = 'block';
   document.getElementById('register-form').style.display = 'none';
-  document.getElementById('login-form').style.display = 'flex';
 }
 
-function initMap() {
-  map = L.map('map').setView([0, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-    maxZoom: 19,
-    attribution: ' OpenStreetMap contributors'
-  }).addTo(map);
+document.getElementById('register-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const username = document.getElementById('register-username').value;
+  const password = document.getElementById('register-password').value;
+  if (!username || !password) {
+    alert('Please enter a username and password');
+    return;
+  }
+  users.push({ username, password });
+  alert('Registration successful! Please login.');
+  showLogin();
+});
+
+document.getElementById('login-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const user = users.find((user) => user.username === username && user.password === password);
+  if (!user) {
+    alert('Invalid username or password');
+    return;
+  }
+  currentUser = user;
+  alert('Login successful!');
+  document.getElementById('auth-container').style.display = 'none';
+  document.getElementById('map-container').style.display = 'block';
+  initializeMap();
+});
+
+function initializeMap() {
+  // Create a map centered at a default location
+  map = L.map('map').setView([7.8731, 80.7718], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // Get the user's current location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = [position.coords.latitude, position.coords.longitude];
+        map.setView(userLocation, 15); // Set the map view to the user's location
+        L.marker(userLocation).addTo(map).bindPopup('You are here!').openPopup(); // Optional: Add a marker for the user's location
+      },
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('User denied the request for Geolocation. Please allow location access.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('The request to get user location timed out.');
+            break;
+          case error.UNKNOWN_ERROR:
+            alert('An unknown error occurred.');
+            break;
+        }
+      }
+    );
+  } else {
+    alert('Geolocation is not supported by this browser.');
+  }
 
   map.on('click', onMapClick);
 }
 
 function onMapClick(e) {
   if (addTreeMode) {
-    if (tempMarker) {
-      map.removeLayer(tempMarker);
-    }
+    if (tempMarker) map.removeLayer(tempMarker);
     tempMarker = L.marker(e.latlng).addTo(map);
-    document.getElementById('tree-details').style.display = 'flex';
-    document.getElementById('zone-details').style.display = 'none';
+    document.getElementById('tree-details').style.display = 'block';
   } else if (addZoneMode) {
-      zonePoints.push(e.latlng);
-      if(tempPolygon){
-          map.removeLayer(tempPolygon)
-      }
-      tempPolygon = L.polygon(zonePoints, {color: 'green'}).addTo(map);
-      document.getElementById('zone-details').style.display = 'flex';
-      document.getElementById('tree-details').style.display = 'none';
+    zonePoints.push(e.latlng);
+    if (tempPolygon) map.removeLayer(tempPolygon);
+    tempPolygon = L.polygon(zonePoints, { color: 'blue' }).addTo(map);
+    document.getElementById('zone-details').style.display = 'block';
   }
 }
 
 function toggleAddTreeMode() {
-    addTreeMode = !addTreeMode;
-    addZoneMode = false;
-    if (addTreeMode){
-        document.getElementById("add-tree-button").innerText = "Adding Trees...";
-        document.getElementById("add-zone-button").innerText = "Add Zone";
-
-    } else {
-        document.getElementById("add-tree-button").innerText = "Add Tree";
-        document.getElementById('tree-details').style.display = 'none';
-         if (tempMarker) {
-            map.removeLayer(tempMarker);
-            tempMarker = null;
-        }
-    }
-    if(tempPolygon){
-        map.removeLayer(tempPolygon)
-        tempPolygon = null;
-        zonePoints = [];
-    }
-        document.getElementById('zone-details').style.display = 'none';
+  addTreeMode = !addTreeMode;
+  addZoneMode = false;
+  document.getElementById('tree-details').style.display = addTreeMode ? 'block' : 'none';
 }
 
 function toggleAddZoneMode() {
-    addZoneMode = !addZoneMode;
-    addTreeMode = false;
-    if(addZoneMode){
-      document.getElementById("add-zone-button").innerText = "Adding Zone..."
-      document.getElementById("add-tree-button").innerText = "Add Tree";
-    } else {
-        document.getElementById("add-zone-button").innerText = "Add Zone";
-        document.getElementById('zone-details').style.display = 'none';
-    if(tempPolygon){
-          map.removeLayer(tempPolygon)
-          tempPolygon = null;
-      }
-        zonePoints = [];
-    }
-
-     if (tempMarker) {
-        map.removeLayer(tempMarker);
-        tempMarker = null;
-    }
-    document.getElementById('tree-details').style.display = 'none';
+  addZoneMode = !addZoneMode;
+  addTreeMode = false;
+  zonePoints = [];
+  if (tempPolygon) map.removeLayer(tempPolygon);
+  document.getElementById('zone-details').style.display = addZoneMode ? 'block' : 'none';
 }
 
 function saveTree() {
-    const treeName = document.getElementById('tree-name').value;
-    if(treeName && tempMarker){
-      const newMarker = L.marker(tempMarker.getLatLng()).addTo(map);
-      newMarker.bindPopup(`<b>${treeName}</b>`);
-       newMarker.on('contextmenu', function(e){
-        map.removeLayer(e.target)
-           markers = markers.filter(m => m.marker !== e.target);
-      });
-      markers.push({name: treeName, marker: newMarker});
-
-
-      map.removeLayer(tempMarker);
-      tempMarker = null;
-      document.getElementById('tree-name').value = '';
-      document.getElementById('tree-details').style.display = 'none';
-      addTreeMode = false;
-        document.getElementById("add-tree-button").innerText = "Add Tree";
-
-    } else {
-        alert("Please enter a name and click the map to place a marker")
-    }
-}
-
-function cancelAddTree(){
-    if(tempMarker){
-        map.removeLayer(tempMarker)
-        tempMarker = null
-    }
+  const treeName = document.getElementById('tree-name').value;
+  if (treeName && tempMarker) {
+    tempMarker.bindPopup(`<b>${treeName}</b>`).openPopup();
+    markers.push({ name: treeName, marker: tempMarker, type: 'tree' });
+    tempMarker = null;
     document.getElementById('tree-details').style.display = 'none';
     addTreeMode = false;
-    document.getElementById("add-tree-button").innerText = "Add Tree";
+  } else {
+    alert('Enter a tree name and place a marker.');
+  }
 }
+
 function saveZone() {
   const zoneName = document.getElementById('zone-name').value;
-    if(zoneName && zonePoints.length > 2){
-        const newPolygon = L.polygon(zonePoints, {color: 'green'}).addTo(map);
-      newPolygon.bindPopup(`<b>${zoneName}</b>`);
-      markers.push({name: zoneName, marker: newPolygon});
+  if (zoneName && zonePoints.length > 2) {
+    const newPolygon = L.polygon(zonePoints, { color: 'green' }).addTo(map);
+    newPolygon.bindPopup(`<b>${zoneName}</b>`);
+    markers.push({ name: zoneName, marker: newPolygon, type: 'zone' });
+    zonePoints = [];
+    tempPolygon = null;
+    document.getElementById('zone-details').style.display = 'none';
+    addZoneMode = false;
+  } else {
+    alert('Enter a zone name and select at least 3 points.');
+  }
+}
 
-        map.removeLayer(tempPolygon);
-      tempPolygon = null;
-      zonePoints = [];
-      document.getElementById('zone-name').value = '';
-      document.getElementById('zone-details').style.display = 'none'
-        addZoneMode = false;
-        document.getElementById("add-zone-button").innerText = "Add Zone";
-
-    } else {
-      alert("Please enter a name and make sure the zone has at least 3 points")
-    }
+function cancelAddTree() {
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
+  document.getElementById('tree-details').style.display = 'none';
+  addTreeMode = false;
 }
 
 function cancelAddZone() {
-    if(tempPolygon){
-        map.removeLayer(tempPolygon)
-        tempPolygon = null;
-    }
+  if (tempPolygon) {
+    map.removeLayer(tempPolygon);
+    tempPolygon = null;
+  }
   zonePoints = [];
-    document.getElementById('zone-details').style.display = 'none';
-    addZoneMode = false;
-    document.getElementById("add-zone-button").innerText = "Add Zone";
+  document.getElementById('zone-details').style.display = 'none';
+  addZoneMode = false;
 }
 
 function search() {
   const query = document.getElementById('search-input').value.toLowerCase();
-    if (!query) { return }
-  const results = markers.filter(item => item.name.toLowerCase().includes(query));
-  if (results.length > 0) {
-      if(results[0].marker instanceof L.Marker){
-        map.flyTo(results[0].marker.getLatLng(), 15);
-      }
-      results[0].marker.openPopup()
+  if (!query) return;
+  const result = markers.find(item => item.name.toLowerCase().includes(query));
+  if (result) {
+    if (result.type === 'tree') {
+      map.flyTo(result.marker.getLatLng(), 15);
+      result.marker.openPopup();
+    } else if (result.type === 'zone') {
+      map.fitBounds(result.marker.getBounds());
+      result.marker.openPopup();
+    }
   } else {
-    alert("No matching trees/sectors found")
+    alert('No matching trees or zones found.');
   }
 }
-
-document.getElementById('register-form').addEventListener('submit', function(event) {
-  event.preventDefault();
-  const username = document.getElementById('register-username').value;
-  const password = document.getElementById('register-password').value;
-  localStorage.setItem(username, password); 
-  alert('Registration successful! You can now log in.');
-  showLogin();
-});
-
-document.getElementById('login-form').addEventListener('submit', function(event) {
-  event.preventDefault();
-  const username = document.getElementById('login-username').value;
-  const password = document.getElementById('login-password').value;
-
-    if (localStorage.getItem(username) == password){
-        user = username;
-        document.getElementById('auth-container').style.display = 'none';
-        document.getElementById('map-container').style.display = 'block';
-        initMap();
-    } else {
-        alert("Invalid username or password")
-    }
-});
-
-showRegister();
